@@ -1,0 +1,11 @@
+export default function AUTHLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <div>
+      <h2>{children}</h2>
+    </div>
+  );
+}
