@@ -5,6 +5,8 @@ import {
   RegisterBodyType,
   RegisterResType,
 } from '@/schemaValidations/auth.schema';
+import { MessageResType } from '@/schemaValidations/common.schema';
+import { Beaker, LogOut } from 'lucide-react';
 
 const authApiRequest = {
   login: (body: LoginBodyType) => http.post<LoginResType>('auth/login', body),
@@ -14,6 +16,25 @@ const authApiRequest = {
     http.post('api/auth', body, {
       baseUrl: '',
     }),
+
+  logoutFromNextServerToServer: (sessionToken: string) =>
+    http.post<MessageResType>(
+      'auth/logout',
+      {},
+      {
+        headers: {
+          Authorization: `Beaker ${sessionToken}`,
+        },
+      },
+    ),
+  logoutFromNextClientToNextServer: (force?: boolean | undefined) =>
+    http.post<MessageResType>(
+      'api/auth/logout',
+      { force },
+      {
+        baseUrl: '',
+      },
+    ),
 };
 
 export default authApiRequest;

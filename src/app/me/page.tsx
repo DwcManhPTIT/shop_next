@@ -10,13 +10,10 @@ export default async function MeProfile() {
 
   const result = await accountApiRequest.me(sessionToken?.value ?? '');
 
-  console.log(result);
-
   return (
     <>
       <h1>Profile</h1>
-      <div>Xin chao {result.payload.data.name} </div>;
-      <Profile />
+      <div>Xin chao {result.payload.data.name} </div>;{/* <Profile /> */}
     </>
   );
 }

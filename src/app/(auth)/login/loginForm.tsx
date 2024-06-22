@@ -22,8 +22,11 @@ import envConfig from '@/config';
 
 import authApiRequest from '@/apiRequest/auth';
 import { useRouter } from 'next/navigation';
+import { handleErrorApi } from '@/lib/utils';
+import { useState } from 'react';
 
 export default function LoginForm() {
+  const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
@@ -37,6 +40,8 @@ export default function LoginForm() {
 
   // 2. Define a submit handler.
   async function onSubmit(values: z.infer<typeof LoginBody>) {
+    if (loading) return;
+    setLoading(true);
     try {
       const result = await authApiRequest.login(values);
       toast({
@@ -48,28 +53,15 @@ export default function LoginForm() {
 
       router.push('/me');
     } catch (error: any) {
-      const errors = error?.payload?.errors as {
-        field: string;
-        message: string;
-      }[];
-      console.log(errors);
-      const status = error?.status as number;
-      if (status === 422) {
-        errors.forEach((error) => {
-          form.setError(error.field as 'email' | 'password', {
-            type: 'server',
-            message: error.message,
-          });
-        });
-      } else {
-        toast({
-          title: 'LỖi',
-          description: error.payload.message,
-          variant: 'destructive',
-        });
-      }
+      handleErrorApi({
+        error,
+        setError: form.setError,
+      });
+    } finally {
+      setLoading(false);
     }
   }
+
   return (
     <Form {...form}>
       <form

@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
-import { ModeToggle } from './ModelToggle';
+import { ModeToggle } from './ui/ModelToggle';
+import ButtonLogout from './button-logout';
 export default function header() {
   return (
     <div>
@@ -10,6 +11,9 @@ export default function header() {
         </li>
         <li>
           <Link href={'/register'}>Đăng kí</Link>
+        </li>
+        <li>
+          <ButtonLogout />
         </li>
         <li>
           <ModeToggle />

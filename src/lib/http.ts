@@ -1,15 +1,47 @@
 import envConfig from '@/config';
 import { LoginResType } from '@/schemaValidations/auth.schema';
+import { normalize } from 'path';
+import { normalizePath } from './utils';
+import { redirect } from 'next/navigation';
 
 type CustomOptions = Omit<RequestInit, 'method'> & {
   baseUrl?: string | undefined;
 };
 
-class HttpError extends Error {
+const ENTITY_ERROR_STATUS = 422;
+const AUTHENTICATION_ERROR_STATUS = 401;
+type EntityErrorPayload = {
+  message: string;
+  errors: {
+    field: string;
+    message: string;
+  }[];
+};
+
+export class HttpError extends Error {
   status: number;
-  payload: any;
+  payload: {
+    message: string;
+    [key: string]: any;
+  };
   constructor({ status, payload }: { status: number; payload: any }) {
     super('Http Error');
+    this.status = status;
+    this.payload = payload;
+  }
+}
+
+export class EntityError extends HttpError {
+  status: 422;
+  payload: EntityErrorPayload;
+  constructor({
+    status,
+    payload,
+  }: {
+    status: 422;
+    payload: EntityErrorPayload;
+  }) {
+    super({ status, payload });
     this.status = status;
     this.payload = payload;
   }
@@ -65,13 +97,46 @@ const request = async <Response>(
       status: res.status,
       payload,
     };
+
+    //Interceptor la noi chung ta xu ly request va response truoc khi tra ve cho phia component
     if (!res.ok) {
-      throw new HttpError(data);
+      if (res.status === 422) {
+        throw new EntityError(
+          data as {
+            status: 422;
+            payload: EntityErrorPayload;
+          },
+        );
+      } else if (res.status === AUTHENTICATION_ERROR_STATUS) {
+        if (typeof window !== 'undefined') {
+          await fetch('/api/auth/logout', {
+            method: 'POST',
+            body: JSON.stringify({ force: true }),
+            headers: {
+              ...baseHeaders,
+            },
+          });
+
+          clientSessionToken.value = '';
+          location.href = '/login';
+        } else {
+          const sessionToken = (options?.headers as any)?.Authorization.split(
+            'Bearer ',
+          )[1];
+          redirect(`/logout?sessionToken=${sessionToken}`);
+        }
+      } else throw new HttpError(data);
     }
-    if (['/auth/login', '/auth/register'].includes(url)) {
-      clientSessionToken.value = (payload as LoginResType).data.token;
-    } else if ('/auth/logout'.includes(url)) {
-      clientSessionToken.value = '';
+    if (typeof window !== 'undefined') {
+      if (
+        ['auth/login', 'auth/register'].some(
+          (item) => item === normalizePath(url),
+        )
+      ) {
+        clientSessionToken.value = (payload as LoginResType).data.token;
+      } else if ('auth/logout' === normalizePath(url)) {
+        clientSessionToken.value = '';
+      }
     }
 
     return data;

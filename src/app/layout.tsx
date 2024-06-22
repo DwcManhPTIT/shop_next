@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import { Roboto } from 'next/font/google';
 import './globals.css';
 import { ThemeProvider } from '@/components/theme-provider';
-import Header from '@/components/ui/header';
+import Header from '@/components/header';
 import { Toaster } from '@/components/ui/toaster';
 import AppProvider from './AppProvider';
 import { cookies } from 'next/headers';
@@ -24,7 +24,7 @@ export default function RootLayout({
   console.log('rootLayout', cookieStore.get('sessionToken'));
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <body className={roboto.className}>
         <Toaster />
         <ThemeProvider

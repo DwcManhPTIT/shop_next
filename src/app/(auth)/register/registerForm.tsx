@@ -21,8 +21,11 @@ import authApiRequest from '@/apiRequest/auth';
 import { toast } from '@/components/ui/use-toast';
 import { useRouter } from 'next/navigation';
 import { clientSessionToken } from '@/lib/http';
+import { handleErrorApi } from '@/lib/utils';
+import { useState } from 'react';
 
 export default function RegisterForm() {
+  const [loading, setLoading] = useState(false);
   const form = useForm<z.infer<typeof RegisterBody>>({
     resolver: zodResolver(RegisterBody),
     defaultValues: {
@@ -37,10 +40,12 @@ export default function RegisterForm() {
 
   // 2. Define a submit handler.
   async function onSubmit(values: z.infer<typeof RegisterBody>) {
+    if (loading) return;
+    setLoading(true);
     try {
       const result = await authApiRequest.register(values);
       toast({
-        title: 'Đăng nhập thành công',
+        title: 'Đăng ki thành công',
       });
       await authApiRequest.auth({
         sessionToken: result.payload.data.token,
@@ -48,26 +53,12 @@ export default function RegisterForm() {
 
       Router.push('/me');
     } catch (error: any) {
-      const errors = error?.payload?.errors as {
-        field: string;
-        message: string;
-      }[];
-      console.log(errors);
-      const status = error?.status as number;
-      if (status === 422) {
-        errors.forEach((error) => {
-          form.setError(error.field as 'email' | 'password', {
-            type: 'server',
-            message: error.message,
-          });
-        });
-      } else {
-        toast({
-          title: 'LỖi',
-          description: error.payload.message,
-          variant: 'destructive',
-        });
-      }
+      handleErrorApi({
+        error,
+        setError: form.setError,
+      });
+    } finally {
+      setLoading(false);
     }
   }
   return (
