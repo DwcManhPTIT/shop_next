@@ -17,43 +17,44 @@ import {
 } from '@/components/ui/form';
 
 import { Input } from '@/components/ui/input';
-import { error } from 'console';
+import { error, profile } from 'console';
 import envConfig from '@/config';
 
 import authApiRequest from '@/apiRequest/auth';
 import { useRouter } from 'next/navigation';
 import { handleErrorApi } from '@/lib/utils';
 import { useState } from 'react';
+import {
+  AccountResType,
+  UpdateMeBody,
+  UpdateMeBodyType,
+} from '@/schemaValidations/account.schema';
+import accountApiRequest from '@/apiRequest/account';
 
-export default function LoginForm() {
+type Profile = AccountResType['data'];
+const ProfileForm = ({ profile }: { profile: Profile }) => {
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const router = useRouter();
 
-  const form = useForm<z.infer<typeof LoginBody>>({
-    resolver: zodResolver(LoginBody),
+  const form = useForm<UpdateMeBodyType>({
+    resolver: zodResolver(UpdateMeBody),
     defaultValues: {
-      email: '',
-      password: '',
+      name: profile.name,
     },
   });
 
   // 2. Define a submit handler.
-  async function onSubmit(values: z.infer<typeof LoginBody>) {
+  async function onSubmit(values: UpdateMeBodyType) {
     if (loading) return;
     setLoading(true);
     try {
-      const result = await authApiRequest.login(values);
+      const result = await accountApiRequest.updateMe(values);
 
-      await authApiRequest.auth({
-        sessionToken: result.payload.data.token,
-        expiresAt: result.payload.data.expiresAt,
-      });
       toast({
-        title: 'Đăng nhập thành công',
+        title: 'Cập nhật thành công',
       });
-
-      router.push('/me');
+      router.refresh();
     } catch (error: any) {
       handleErrorApi({
         error,
@@ -72,28 +73,25 @@ export default function LoginForm() {
         })}
         className="space-y-2 max-w-[400px] w-full  flex-shink-0 "
       >
-        <FormField
-          control={form.control}
-          name="email"
-          render={({ field }) => (
-            <FormItem className="mt-10">
-              <FormLabel>Email</FormLabel>
-              <FormControl>
-                <Input placeholder="Nhập Email" type="email" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
+        <FormLabel>Email</FormLabel>
+        <FormControl>
+          <Input
+            placeholder="Nhập Email"
+            type="email"
+            value={profile.email}
+            readOnly
+          />
+        </FormControl>
+        <FormMessage />
 
         <FormField
           control={form.control}
-          name="password"
+          name="name"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>Mật khẩu</FormLabel>
+              <FormLabel>Tên</FormLabel>
               <FormControl>
-                <Input placeholder="Nhập mật khẩu" {...field} />
+                <Input placeholder="Tên" type="text" {...field} />
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -101,9 +99,11 @@ export default function LoginForm() {
         />
 
         <Button className="!mt-5 w-full" type="submit">
-          Đăng nhập
+          Cập nhật
         </Button>
       </form>
     </Form>
   );
-}
+};
+
+export default ProfileForm;

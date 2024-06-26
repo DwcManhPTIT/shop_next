@@ -49,6 +49,7 @@ export class EntityError extends HttpError {
 
 class SessionToken {
   private token = '';
+  private _expiresAt = new Date().toISOString();
   get value() {
     return this.token;
   }
@@ -57,6 +58,15 @@ class SessionToken {
       throw new Error('Khong the set token o server side');
     }
     this.token = token;
+  }
+  get expiresAt() {
+    return this._expiresAt;
+  }
+  set expiresAt(expiresAt: string) {
+    if (typeof window === undefined) {
+      throw new Error('Khong the set token o server side');
+    }
+    this._expiresAt = expiresAt;
   }
 }
 export const clientSessionToken = new SessionToken();
@@ -67,13 +77,24 @@ const request = async <Response>(
   options?: CustomOptions | undefined,
 ) => {
   try {
-    const body = options?.body ? JSON.stringify(options.body) : undefined;
-    const baseHeaders = {
-      'Content-Type': 'application/json',
-      Authorization: clientSessionToken.value
-        ? `Bearer ${clientSessionToken.value}`
-        : '',
-    };
+    const body = options?.body
+      ? options?.body instanceof FormData
+        ? options.body
+        : JSON.stringify(options.body)
+      : undefined;
+    const baseHeaders =
+      body instanceof FormData
+        ? {
+            Authorization: clientSessionToken.value
+              ? `Bearer ${clientSessionToken.value}`
+              : '',
+          }
+        : {
+            'Content-Type': 'application/json',
+            Authorization: clientSessionToken.value
+              ? `Bearer ${clientSessionToken.value}`
+              : '',
+          };
     const baseUrl =
       options?.baseUrl === undefined
         ? envConfig.NEXT_PUBLIC_API_ENDPOINT
@@ -88,7 +109,7 @@ const request = async <Response>(
       headers: {
         ...baseHeaders,
         ...options?.headers,
-      },
+      } as any,
       body,
       method,
     });
@@ -114,9 +135,9 @@ const request = async <Response>(
             body: JSON.stringify({ force: true }),
             headers: {
               ...baseHeaders,
-            },
+            } as any,
           });
-
+          clientSessionToken.expiresAt = new Date().toISOString();
           clientSessionToken.value = '';
           location.href = '/login';
         } else {
@@ -134,8 +155,10 @@ const request = async <Response>(
         )
       ) {
         clientSessionToken.value = (payload as LoginResType).data.token;
+        clientSessionToken.expiresAt = (payload as LoginResType).data.expiresAt;
       } else if ('auth/logout' === normalizePath(url)) {
         clientSessionToken.value = '';
+        clientSessionToken.expiresAt = new Date().toISOString();
       }
     }
 
