@@ -53,7 +53,8 @@ export default function LoginForm() {
         title: 'Đăng nhập thành công',
       });
 
-      router.push('/me');
+      router.push('/');
+      router.refresh();
     } catch (error: any) {
       handleErrorApi({
         error,
